@@ -43,12 +43,9 @@
         is-link
         @click="showPasswordForm = true"
       />
-    </van-cell-group>
-
-    <van-cell-group inset>
       <van-cell
-        title="上次登录"
-        :value="formatDateTime(userInfo?.lastLogin)"
+          title="上次登录"
+          :value="formatDateTime(userInfo?.lastLogin)"
       />
     </van-cell-group>
 
@@ -278,6 +275,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   text-align: center;
   color: #fff;
+  margin-bottom: 16px;
 
   .avatar-wrapper {
     position: relative;
