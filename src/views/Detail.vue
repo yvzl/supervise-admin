@@ -29,6 +29,7 @@
           <van-cell title="昵称" :value="detail.nickname" />
           <van-cell title="联系电话" :value="detail.phone" />
           <van-cell title="发生地点" :value="detail.location" />
+          <van-cell v-if="detail.detailLocation" title="详细地点" :value="detail.detailLocation" />
           <van-cell title="发生日期" :value="formatDate(detail.date)" />
           <van-cell title="提交时间" :value="formatDateTime(detail.createdAt)" />
         </van-cell-group>
@@ -71,12 +72,29 @@
           <van-cell :label="detail.adminNotes" />
         </van-cell-group>
 
-        <div v-if="detail.attachments?.length > 0" class="tips">
-          <van-notice-bar
-              left-icon="info-o"
-              text="点击图片可预览，点击其他文件可下载"
-              :scrollable="false"
-          />
+        <div v-if="detail.aiAnalysis" class="ai-analysis">
+          <h3 class="section-title">
+            <van-icon name="star" color="#ffd700" />
+            AI 智慧分析
+            <van-tag v-if="detail.aiAnalysis.createdAt" type="primary" size="mini">
+              {{ formatDateTime(detail.aiAnalysis.createdAt) }}
+            </van-tag>
+          </h3>
+          <div class="markdown-body">
+            <div v-html="md.render(detail.aiAnalysis.content || '')"></div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <van-button
+            v-if="!detail.aiAnalysis"
+            block
+            round
+            :loading="analyzing"
+            @click="handleAiAnalysis"
+          >
+            {{ analyzing ? '分析中...' : 'AI 智慧分析' }}
+          </van-button>
         </div>
       </van-skeleton>
     </div>
@@ -89,12 +107,18 @@ import { useRoute } from 'vue-router';
 import { showToast, showImagePreview } from 'vant';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import MarkdownIt from 'markdown-it';
 import request from "@/utils/request.js";
+import 'github-markdown-css';
 
 const route = useRoute();
 const loading = ref(true);
+const analyzing = ref(false);
 
 const detail = ref({});
+
+// 初始化 markdown-it 实例
+const md = new MarkdownIt();
 
 const getTypeText = (type) => {
   const types = { 0: '其它', 1: '交警', 2: '路政', 3: '地保办' };
@@ -158,6 +182,25 @@ const previewImage = (index) => {
     images: urls,
     startPosition: index
   });
+};
+
+// AI 智慧分析
+const handleAiAnalysis = async () => {
+  try {
+    analyzing.value = true;
+    const res = await request.post(`/api/feedback/${route.params.id}/analyze`);
+
+    if (res.data.success) {
+      showToast('分析成功');
+      // 刷新详情
+      await fetchDetail();
+    }
+  } catch (error) {
+    console.error('AI 分析错误:', error);
+    showToast(error?.response?.data?.message || 'AI 分析失败');
+  } finally {
+    analyzing.value = false;
+  }
 };
 
 const fetchDetail = async () => {
@@ -246,5 +289,33 @@ onMounted(() => {
 
 .tips {
   padding: 0 15px 15px;
+}
+
+.ai-analysis {
+  margin: 15px;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    color: #fff;
+    font-size: 16px;
+  }
+
+  .markdown-body {
+    background-color: #fff;
+    padding: 16px;
+    border-radius: 8px;
+    color: #24292f;
+    font-size: 14px;
+  }
+}
+
+.action-bar {
+  padding: 15px;
 }
 </style>
